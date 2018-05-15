@@ -1,0 +1,43 @@
+default_platform(:ios)
+
+platform :ios do
+
+
+  desc "This lane uses match to validate certificates and provisioning profiles and then builds using gym"
+  lane :signAndArchive do |options|
+    match(
+      git_url: options[:giturl],
+      git_branch: options[:gitbranch],
+      type: "appstore",
+      app_identifier: options[:identifier],
+      username: options[:appleusername],
+      team_id: options[:teamid],
+      force: true
+    )
+    disable_automatic_code_signing(
+      team_id: options[:teamid],
+      profile_name: "match AppStore #{options[:identifier]}",
+      bundle_identifier: options[:identifier],
+      code_sign_identity: options[:signidentity]
+    )
+    gym(
+      scheme: options[:appscheme],
+      clean: true,
+      output_directory: options[:ipasdir],
+      output_name: options[:appscheme],
+      configuration: "Release",
+      export_method: "app-store",
+      export_team_id: options[:teamid]
+    )
+  end
+
+  desc "Upload ipa file to TestFlight using pilot"
+  lane :uploadToTestflight do |options|
+    pilot(
+      username: options[:username],
+      ipa: options[:ipapath],
+      skip_submission:true,
+      skip_waiting_for_build_processing:true
+    )
+  end
+end
